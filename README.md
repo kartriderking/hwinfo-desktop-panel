@@ -29,7 +29,9 @@
 3. 打开 HWiNFO 传感器窗口，点齿轮进入 **HWiNFO 小工具 / HWiNFO Gadget**。
 4. 勾选 **启用向小工具报告 / Enable reporting to Gadget**；逐个选中所需传感器，再勾选 **小工具中的报告值 / Report value in Gadget**。
 5. 按下一节调整 `panel.json`，匹配自己的硬件和传感器名称。
-6. 双击 `StartPanel.cmd`。
+6. 双击 `StartPanel.vbs`，通过无控制台的启动入口打开面板。
+
+`StartPanel.cmd` 也会转交给上述入口；双击 CMD 本身可能短暂闪过命令窗口。直接使用 `StartPanel.vbs` 可以避免这层命令窗口。启动入口使用 Windows Script Host；如果系统禁用了 VBScript，可手动用本页“验证”章节中的 PowerShell 命令去掉 `-ValidateOnly` 启动面板。
 
 启动器会在 HWiNFO 未运行时启用“记住偏好设置”，默认同时开启传感器采集、最小化传感器窗口，并启用“最小化传感器而非关闭”。主界面、仅传感器模式、欢迎窗口及主窗口最小化选项会保留用户的选择。如果 Windows 请求管理员许可，请自行确认。HWiNFO 已运行时，启动器会使用现有进程，不强制重启或改写运行中的设置。
 
@@ -40,7 +42,7 @@
 HWiNFO 主界面运行不代表传感器采集已经启动。Gadget 温度与 RPM 需要 HWiNFO 持续采集；传感器窗口可以保持最小化，不需要一直显示在桌面上。
 
 - 默认 `startup.startSensors=true`：在下一次由面板启动 HWiNFO 时，写入 `OpenSensors=1`、`MinimalizeSensors=1` 和 `MinimalizeSensorsClose=1`。不强制启用仅传感器模式，主界面仍然可用。
-- 如正在运行的 HWiNFO 尚未采集，请在主窗口点“传感器”；或从托盘正常退出后，再双击 `StartPanel.cmd`，应用新的启动设置。
+- 如正在运行的 HWiNFO 尚未采集，请在主窗口点“传感器”；或从托盘正常退出后，再双击 `StartPanel.vbs`，应用新的启动设置。
 - 要只收起传感器并保留主窗口，点传感器右上角的 **−（最小化）**。任务栏可能保留传感器图标，采集会继续。
 - 启用“最小化而非关闭”后，**×** 会保留后台采集，但缩到托盘可能连带收起主窗口。需要完全退出时，使用托盘的 Exit；此时温度和 RPM 会断连。
 - 若希望完全自行管理传感器启动和关闭行为，可设置 `startup.startSensors=false`。启动器将保留上述三个传感器窗口选项。
@@ -98,7 +100,8 @@ CPU/GPU 的 `name` 保持为 `CPU`/`GPU`，以进入对应设备卡片。其余�
 
 | 文件 | 说明 |
 |---|---|
-| `StartPanel.cmd` | Windows 双击启动入口 |
+| `StartPanel.vbs` | Windows 无控制台的双击启动入口 |
+| `StartPanel.cmd` | 兼容原有启动入口，转交给 VBS |
 | `Panel.ps1` | 紧凑面板界面、数据绑定与验证入口 |
 | `NativeTelemetry.cs` | Windows 与 NVIDIA 的只读遥测 |
 | `PrepareHWiNFO.ps1` | HWiNFO 启动准备，默认不导入备份 |
