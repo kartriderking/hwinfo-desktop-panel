@@ -54,6 +54,12 @@ function Resolve-Reading($spec,$readings) {
     return ($candidates | Sort-Object @{Expression={if($_.Sensor -match 'DTS'){0}else{1}}},Label | Select-Object -First 1)
 }
 function Brush([string]$color) { return [Windows.Media.BrushConverter]::new().ConvertFromString($color) }
+function Get-HwSourceHint([bool]$running,[int]$readingCount,[int]$activeCount) {
+    if(-not $running){return [pscustomobject]@{Text='HWiNFO 未运行 · 系统/显卡信息继续更新';Tip='请启动 HWiNFO 并开启传感器采集。'}}
+    if($readingCount -eq 0){return [pscustomobject]@{Text='未收到传感器输出 · 点 HWiNFO 检查';Tip='HWiNFO 进程已运行，但没有新鲜的 Gadget 数据。请在主窗口点“传感器”，并确认 Gadget 输出已启用。传感器窗口可以最小化；停止采集或退出 HWiNFO 后，温度与 RPM 会断连。'}}
+    if($activeCount -eq 0){return [pscustomobject]@{Text='已收到输出 · 请核对温度项目';Tip='传感器输出正在更新，但未匹配温度项目。请核对 Gadget 勾选项目及 panel.json 的设备名、项目名和单位。'}}
+    return $null
+}
 [xml]$xaml=@'
 <Window xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" Title="硬件监控" WindowStyle="None" ResizeMode="NoResize" AllowsTransparency="True" Background="Transparent" SizeToContent="Height" ShowInTaskbar="True" FontFamily="Microsoft YaHei UI">
  <Border Background="#111827" BorderBrush="#334155" BorderThickness="1" CornerRadius="16" Padding="16">
@@ -223,7 +229,8 @@ function Update-Panel {
         $status.Text="温度 $active / $($script:rows.Count) · 风扇 $fanCount / 4 已连接"
         $status.Foreground=Brush '#94A3B8';if($active -lt $script:rows.Count -or $fanCount -lt 4){$status.Foreground=Brush '#FBBF24'}
         $status.ToolTip='更新于 '+(Get-Date -Format 'HH:mm:ss')+'。温度及 RPM 来自 HWiNFO；负载/内存来自 Windows/NVIDIA。峰值为本面板本次运行轮询采集的最高值。'
-        if(-not $running){$status.Text='HWiNFO 未运行 · 系统/显卡信息继续更新'} elseif($active -eq 0){$status.Text='温度未更新 · 请检查 HWiNFO Gadget 输出'}
+        $sourceHint=Get-HwSourceHint $running $readings.Count $active
+        if($null -ne $sourceHint){$status.Text=$sourceHint.Text;$status.ToolTip=$sourceHint.Tip;$status.Foreground=Brush '#FBBF24'}
         $thermalAlerts=@();foreach($id in @('cpuThrottle','gpuThrottle')){if($null -ne $script:metricReadings[$id] -and $script:metricReadings[$id].Value -gt 0){if($id -eq 'cpuThrottle'){$thermalAlerts+='CPU 热降频'}else{$thermalAlerts+='GPU 温度限制'}}}
         if($thermalAlerts.Count -gt 0){$status.Text+=' · '+($thermalAlerts -join ' / ');$status.Foreground=Brush '#FB7185'}
     } catch {$status.Text='读取失败：'+$_.Exception.Message}
@@ -240,6 +247,10 @@ $window.FindName('ResetPeaks').Add_Click({$script:peaks=@{};Update-Panel})
 $script:timer=[Windows.Threading.DispatcherTimer]::new();$script:timer.Interval=[TimeSpan]::FromSeconds([Math]::Max(1,$config.refreshSeconds))
 $script:timer.Add_Tick({Update-Panel});$window.Add_Closed({$script:timer.Stop();[PanelNative]::Close()})
 if($ValidateOnly) {
+    if((Get-HwSourceHint $true 0 0).Text -notlike '未收到传感器输出*'){throw 'Running process without telemetry must not imply active sampling.'}
+    if((Get-HwSourceHint $true 9 0).Text -notlike '已收到输出*'){throw 'Unmatched live output must be distinguished from inactive sampling.'}
+    if($null -ne (Get-HwSourceHint $true 9 5)){throw 'Live matching output must remain connected.'}
+    if((Get-HwSourceHint $false 9 0).Text -notlike 'HWiNFO 未运行*'){throw 'Cached data must not imply a running source.'}
     $unitCases=@{'40 ℃'='C';'958 RPM'='RPM';'0 %'='%';'55.5 W'='W';'800 MHz'='MHz';'是'='bool';'否'='bool'}
     foreach($text in $unitCases.Keys){if((Get-ReadingUnit $text) -ne $unitCases[$text]){throw "Unit parse failed: $text"}}
     $cpuSpec=$config.metrics | Where-Object {$_.id -eq 'cpuFan'} | Select-Object -First 1

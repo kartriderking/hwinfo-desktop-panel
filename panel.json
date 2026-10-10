@@ -5,7 +5,7 @@
   "refreshSeconds": 2,
   "staleSeconds": 30,
   "hwinfoPath": "HWiNFO64.exe",
-  "startup": { "enabled": true, "restoreOutputProfile": false },
+  "startup": { "enabled": true, "startSensors": true, "restoreOutputProfile": false },
   "gpuPattern": "RTX 4060",
   "metrics": [
     { "id": "cpuFan", "name": "CPU 风扇接口", "sensorPattern": "Maxsun|MS-Terminator|B760|Nuvoton|ITE|Fintek|Embedded Controller", "labelPattern": "^(CPUFANIN0|CPU|CPU Fan(?: ?[12])?|CPU[ _-]?FAN[12]?|CPU ?风扇(?: ?[12])?|处理器风扇)$", "unit": "RPM" },
