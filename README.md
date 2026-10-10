@@ -31,7 +31,7 @@
 5. 按下一节调整 `panel.json`，匹配自己的硬件和传感器名称。
 6. 双击 `StartPanel.vbs`，通过无控制台的启动入口打开面板。
 
-`StartPanel.cmd` 也会转交给上述入口；双击 CMD 本身可能短暂闪过命令窗口。直接使用 `StartPanel.vbs` 可以避免这层命令窗口。启动入口使用 Windows Script Host；如果系统禁用了 VBScript，可手动用本页“验证”章节中的 PowerShell 命令去掉 `-ValidateOnly` 启动面板。
+启动入口使用 Windows Script Host；如果系统禁用了 VBScript，可手动用本页“验证”章节中的 PowerShell 命令去掉 `-ValidateOnly` 启动面板。
 
 启动器会在 HWiNFO 未运行时启用“记住偏好设置”，默认同时开启传感器采集、最小化传感器窗口，并启用“最小化传感器而非关闭”。主界面、仅传感器模式、欢迎窗口及主窗口最小化选项会保留用户的选择。如果 Windows 请求管理员许可，请自行确认。HWiNFO 已运行时，启动器会使用现有进程，不强制重启或改写运行中的设置。
 
@@ -101,7 +101,6 @@ CPU/GPU 的 `name` 保持为 `CPU`/`GPU`，以进入对应设备卡片。其余�
 | 文件 | 说明 |
 |---|---|
 | `StartPanel.vbs` | Windows 无控制台的双击启动入口 |
-| `StartPanel.cmd` | 兼容原有启动入口，转交给 VBS |
 | `Panel.ps1` | 紧凑面板界面、数据绑定与验证入口 |
 | `NativeTelemetry.cs` | Windows 与 NVIDIA 的只读遥测 |
 | `PrepareHWiNFO.ps1` | HWiNFO 启动准备，默认不导入备份 |
