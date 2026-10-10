@@ -1,0 +1,19 @@
+# Third-party HWiNFO binaries, local settings and hardware-specific backups
+*.exe
+*.dll
+HWiNFO64.*
+*.ini
+*.INI
+*.reg
+*.bak
+*.backup
+*.before-repair
+
+# Local telemetry, generated packages and editor files
+*.log
+*.csv
+*.zip
+*.pdb
+panel.local.json
+.vs/
+.vscode/

@@ -1,0 +1,29 @@
+{
+  "width": 350,
+  "topmost": true,
+  "opacity": 0.96,
+  "refreshSeconds": 2,
+  "staleSeconds": 30,
+  "hwinfoPath": "HWiNFO64.exe",
+  "startup": { "enabled": true, "restoreOutputProfile": false },
+  "gpuPattern": "RTX 4060",
+  "metrics": [
+    { "id": "cpuFan", "name": "CPU 风扇接口", "sensorPattern": "Maxsun|MS-Terminator|B760|Nuvoton|ITE|Fintek|Embedded Controller", "labelPattern": "^(CPUFANIN0|CPU|CPU Fan(?: ?[12])?|CPU[ _-]?FAN[12]?|CPU ?风扇(?: ?[12])?|处理器风扇)$", "unit": "RPM" },
+    { "id": "sysFan", "name": "系统接口 · SYSFANIN", "sensorPattern": "Maxsun|MS-Terminator|B760|Nuvoton|ITE|Fintek|Embedded Controller", "labelPattern": "^SYSFANIN$", "unit": "RPM" },
+    { "id": "auxFan", "name": "辅助接口 · AUXFANIN3", "sensorPattern": "Maxsun|MS-Terminator|B760|Nuvoton|ITE|Fintek|Embedded Controller", "labelPattern": "^AUXFANIN3$", "unit": "RPM" },
+    { "id": "gpuFan", "name": "GPU 风扇", "sensorPattern": "RTX 4060", "labelPattern": "^(GPU Fan(?: ?[12])?|GPU ?风扇(?: ?[12])?)$", "unit": "RPM" },
+    { "id": "cpuPower", "name": "CPU 封装功耗", "sensorPattern": "12490F", "labelPattern": "^(CPU Package Power|CPU ?封装功耗|CPU ?封装功率|处理器封装功耗)$", "unit": "W" },
+    { "id": "cpuClock", "name": "CPU 平均有效频率", "sensorPattern": "12490F", "labelPattern": "^(Average Effective Clock|平均有效频率|平均有效时钟)$", "unit": "MHz" },
+    { "id": "cpuThrottle", "name": "CPU 热降频", "sensorPattern": "12490F", "labelPattern": "Package.*Thermal Throttling|CPU.*Thermal Throttling|封装.*(热降频|热节流|温度限制)|CPU.*(热降频|热节流)|核心.*(热降频|热节流)|Core Thermal Throttling", "unit": "bool", "aggregate": "max" },
+    { "id": "gpuPower", "name": "GPU 功耗", "sensorPattern": "RTX 4060", "labelPattern": "^(GPU Power|GPU 功耗|GPU 功率)$", "unit": "W" },
+    { "id": "gpuHotspot", "name": "GPU 热点温度", "sensorPattern": "RTX 4060", "labelPattern": "^(GPU Hot Spot Temperature|GPU Hotspot Temperature|GPU 热点温度|GPU 热点)$", "unit": "C" },
+    { "id": "gpuThrottle", "name": "GPU 温度限制", "sensorPattern": "RTX 4060", "labelPattern": "^Performance Limit - Thermal$|性能限制.*(温度|热)|温度.*性能限制", "unit": "bool" }
+  ],
+  "sensors": [
+    { "name": "CPU", "subtitle": "Intel Core i5-12490F · 封装", "sensorPattern": "12490F", "labelPattern": "^(CPU Package|CPU 封装|处理器封装)$", "warm": 80, "hot": 95 },
+    { "name": "GPU", "subtitle": "NVIDIA RTX 4060 · 核心", "sensorPattern": "RTX 4060", "labelPattern": "^(GPU Temperature|GPU 温度|GPU 核心温度|显卡温度)$", "warm": 80, "hot": 90 },
+    { "name": "SSD", "subtitle": "C: · Seagate ZP1000GV30012 · 1 TB", "sensorPattern": "ZP1000GV30012", "labelPattern": "^(Drive Temperature|Drive Temperature 1|磁盘温度|磁盘温度 1|驱动器温度|驱动器温度 1|硬盘温度|温度)$", "warm": 60, "hot": 75 },
+    { "name": "HDD 1", "subtitle": "D: · Seagate ST4000VX015 · 4 TB", "sensorPattern": "ST4000VX015", "labelPattern": "^(Drive Temperature|磁盘温度|驱动器温度|硬盘温度|温度)$", "warm": 50, "hot": 60 },
+    { "name": "HDD 2", "subtitle": "E: · WD WD4002FYYZ · 4 TB", "sensorPattern": "WD4002FYYZ", "labelPattern": "^(Drive Temperature|磁盘温度|驱动器温度|硬盘温度|温度)$", "warm": 50, "hot": 60 }
+  ]
+}
