@@ -1,11 +1,12 @@
-﻿param([switch]$ValidateOnly, [string]$PreviewPath, [switch]$ExpandDetails)
+﻿param([switch]$ValidateOnly, [string]$PreviewPath, [switch]$ExpandDetails, [switch]$ValidateTray)
 $ErrorActionPreference='Stop'
 Add-Type -AssemblyName PresentationFramework,PresentationCore,WindowsBase
+Add-Type -AssemblyName System.Windows.Forms,System.Drawing
 Add-Type -Path (Join-Path $PSScriptRoot 'NativeTelemetry.cs')
 [PanelNative]::SetAppIdentity()
 $config=Get-Content -LiteralPath (Join-Path $PSScriptRoot 'panel.json') -Raw -Encoding UTF8 | ConvertFrom-Json
 if(-not [IO.Path]::IsPathRooted($config.hwinfoPath)){$config.hwinfoPath=Join-Path $PSScriptRoot $config.hwinfoPath}
-if(-not $ValidateOnly -and -not $PreviewPath){
+if(-not $ValidateOnly -and -not $PreviewPath -and -not $ValidateTray){
     try{& (Join-Path $PSScriptRoot 'PrepareHWiNFO.ps1')}
     catch{[void][Windows.MessageBox]::Show('启动准备失败：'+$_.Exception.Message,'硬件监控')}
 }
@@ -68,7 +69,10 @@ function Get-HwSourceHint([bool]$running,[int]$readingCount,[int]$activeCount) {
    <Grid x:Name="Header" Background="Transparent" Margin="0,0,0,10">
     <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
     <StackPanel Orientation="Horizontal"><Image x:Name="AppLogo" Width="32" Height="32" Margin="0,0,10,0" VerticalAlignment="Center"/><StackPanel><TextBlock Text="硬件监控" Foreground="#F1F5F9" FontSize="17" FontWeight="SemiBold"/><TextBlock Text="温度 · 风扇 · 负载" Foreground="#94A3B8" FontSize="9" Margin="0,3,0,0"/></StackPanel></StackPanel>
-    <Button x:Name="CloseButton" Grid.Column="1" Content="×" Width="24" Height="24" VerticalAlignment="Top" Background="#1E293B" Foreground="#CBD5E1" BorderThickness="0" ToolTip="关闭面板"/>
+    <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Top">
+     <Button x:Name="MinimizeButton" Content="−" Width="24" Height="24" Margin="0,0,4,0" Background="#1E293B" Foreground="#CBD5E1" BorderThickness="0" ToolTip="最小化到托盘"/>
+     <Button x:Name="CloseButton" Content="×" Width="24" Height="24" Background="#1E293B" Foreground="#CBD5E1" BorderThickness="0" ToolTip="退出面板"/>
+    </StackPanel>
    </Grid>
    <ScrollViewer x:Name="Body" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
     <StackPanel>
@@ -107,6 +111,8 @@ $status=$window.FindName('Status')
 if($ExpandDetails){$window.FindName('Details').Visibility=[Windows.Visibility]::Visible;$window.FindName('DetailsButton').Content='收起'}
 $script:rows=@(); $script:peaks=@{}; $script:peakViews=@{}; $script:detailViews=@{}; $script:metricReadings=@{}
 $script:cpuLoad=$null; $script:gpuLoad=$null; $script:timer=$null
+$script:tray=$null;$script:trayIcon=$null;$script:trayMenu=$null
+$script:sampleCount=0
 function New-Text([string]$text,[double]$size=10,[string]$color='#94A3B8') {
     $t=[Windows.Controls.TextBlock]::new(); $t.Text=$text; $t.FontSize=$size; $t.Foreground=Brush $color; return $t
 }
@@ -165,6 +171,7 @@ function Get-FanDisplay([string]$id,$gpu){
 }
 function Update-Panel {
     try {
+        $script:sampleCount++
         $running=@(Get-Process -Name HWiNFO64 -ErrorAction SilentlyContinue).Count -gt 0
         $readings=@(); if($running) { $readings=@(Get-HwReadings) }
         $system=[PanelNative]::ReadSystem(); $gpu=[PanelNative]::ReadGpu()
@@ -242,10 +249,16 @@ function Update-Panel {
         if($null -ne $sourceHint){$status.Text=$sourceHint.Text;$status.ToolTip=$sourceHint.Tip;$status.Foreground=Brush '#FBBF24'}
         $thermalAlerts=@();foreach($id in @('cpuThrottle','gpuThrottle')){if($null -ne $script:metricReadings[$id] -and $script:metricReadings[$id].Value -gt 0){if($id -eq 'cpuThrottle'){$thermalAlerts+='CPU 热降频'}else{$thermalAlerts+='GPU 温度限制'}}}
         if($thermalAlerts.Count -gt 0){$status.Text+=' · '+($thermalAlerts -join ' / ');$status.Foreground=Brush '#FB7185'}
+        if($null -ne $script:tray){
+            $cpuText=($script:rows | Where-Object {$_.Spec.name -eq 'CPU'} | Select-Object -First 1).Value.Text
+            $gpuText=($script:rows | Where-Object {$_.Spec.name -eq 'GPU'} | Select-Object -First 1).Value.Text
+            $script:tray.Text="硬件监控 · CPU $cpuText · GPU $gpuText"
+        }
     } catch {$status.Text='读取失败：'+$_.Exception.Message}
 }
 $window.FindName('Header').Add_MouseLeftButtonDown({if($_.ChangedButton -eq [Windows.Input.MouseButton]::Left){$window.DragMove()}})
 $window.FindName('CloseButton').Add_Click({$window.Close()})
+$window.FindName('MinimizeButton').Add_Click({Hide-PanelToTray})
 $window.FindName('OpenHw').Add_Click({if(Test-Path -LiteralPath $config.hwinfoPath){Start-Process -FilePath $config.hwinfoPath}else{[void][Windows.MessageBox]::Show('找不到 HWiNFO，请修改 panel.json 的 hwinfoPath。','硬件监控')}})
 $window.FindName('HelpButton').Add_Click({Start-Process -FilePath 'notepad.exe' -ArgumentList ('"'+(Join-Path $PSScriptRoot 'README.md')+'"')})
 $window.FindName('DetailsButton').Add_Click({
@@ -254,7 +267,24 @@ $window.FindName('DetailsButton').Add_Click({
 })
 $window.FindName('ResetPeaks').Add_Click({$script:peaks=@{};Update-Panel})
 $script:timer=[Windows.Threading.DispatcherTimer]::new();$script:timer.Interval=[TimeSpan]::FromSeconds([Math]::Max(1,$config.refreshSeconds))
-$script:timer.Add_Tick({Update-Panel});$window.Add_Closed({$script:timer.Stop();[PanelNative]::Close()})
+$script:timer.Add_Tick({Update-Panel})
+function Hide-PanelToTray {
+    if($null -eq $script:tray){return}
+    $script:tray.Visible=$true;$window.ShowInTaskbar=$false;$window.Hide()
+}
+function Restore-PanelFromTray {
+    $window.ShowInTaskbar=$true;$window.WindowState=[Windows.WindowState]::Normal
+    $window.Show();$script:tray.Visible=$false;Update-Panel;[void]$window.Activate()
+}
+function Close-PanelResources {
+    $script:timer.Stop()
+    if($null -ne $script:tray){$script:tray.Visible=$false;$script:tray.Dispose();$script:tray=$null}
+    if($null -ne $script:trayMenu){$script:trayMenu.Dispose();$script:trayMenu=$null}
+    if($null -ne $script:trayIcon){$script:trayIcon.Dispose();$script:trayIcon=$null}
+    [PanelNative]::Close()
+}
+$window.Add_Closed({Close-PanelResources})
+$window.Add_StateChanged({if($window.WindowState -eq [Windows.WindowState]::Minimized){Hide-PanelToTray}})
 if($ValidateOnly) {
     if((Get-HwSourceHint $true 0 0).Text -notlike '未收到传感器输出*'){throw 'Running process without telemetry must not imply active sampling.'}
     if((Get-HwSourceHint $true 9 0).Text -notlike '已收到输出*'){throw 'Unmatched live output must be distinguished from inactive sampling.'}
@@ -307,4 +337,34 @@ if($PreviewPath){
     $bitmap.Render($visual);$encoder=[Windows.Media.Imaging.PngBitmapEncoder]::new();$encoder.Frames.Add([Windows.Media.Imaging.BitmapFrame]::Create($bitmap))
     $stream=[IO.File]::Create($PreviewPath);try{$encoder.Save($stream)}finally{$stream.Dispose();[PanelNative]::Close()};exit
 }
-$script:timer.Start();[void]$window.ShowDialog()
+$script:tray=[Windows.Forms.NotifyIcon]::new()
+if(Test-Path -LiteralPath $iconPath){$script:trayIcon=[Drawing.Icon]::new($iconPath,[Drawing.Size]::new(32,32))}
+else{$script:trayIcon=[Drawing.SystemIcons]::Application.Clone()}
+$script:tray.Icon=$script:trayIcon;$script:tray.Text='硬件监控 · 双击恢复窗口'
+$script:trayMenu=[Windows.Forms.ContextMenuStrip]::new()
+$restoreMenu=[Windows.Forms.ToolStripMenuItem]::new('显示面板')
+$exitMenu=[Windows.Forms.ToolStripMenuItem]::new('退出面板')
+$restoreMenu.Add_Click({Restore-PanelFromTray});$exitMenu.Add_Click({$window.Close()})
+[void]$script:trayMenu.Items.Add($restoreMenu);[void]$script:trayMenu.Items.Add($exitMenu)
+$script:tray.ContextMenuStrip=$script:trayMenu
+$script:tray.Add_MouseDoubleClick({if($_.Button -eq [Windows.Forms.MouseButtons]::Left){Restore-PanelFromTray}})
+$application=[Windows.Application]::new();$application.ShutdownMode=[Windows.ShutdownMode]::OnMainWindowClose
+$application.MainWindow=$window
+if($ValidateTray){
+    $script:trayTestStep=0;$script:trayTestError=$null
+    $script:trayTestTimer=[Windows.Threading.DispatcherTimer]::new();$script:trayTestTimer.Interval=[TimeSpan]::FromMilliseconds($script:timer.Interval.TotalMilliseconds+200)
+    $script:trayTestTimer.Add_Tick({
+        try{
+            switch($script:trayTestStep){
+                0 {$window.FindName('MinimizeButton').RaiseEvent([Windows.RoutedEventArgs]::new([Windows.Controls.Button]::ClickEvent));if($window.IsVisible -or $window.ShowInTaskbar -or -not $script:tray.Visible -or -not $script:timer.IsEnabled){throw 'Minimize did not retain background monitoring in the tray.'};$script:trayTestSamples=$script:sampleCount}
+                1 {if($script:sampleCount -le $script:trayTestSamples){throw 'Background sampling stopped while hidden.'};$restoreMenu.PerformClick();if(-not $window.IsVisible -or -not $window.ShowInTaskbar -or $script:tray.Visible){throw 'Tray menu did not restore the window.'}}
+                2 {$window.FindName('MinimizeButton').RaiseEvent([Windows.RoutedEventArgs]::new([Windows.Controls.Button]::ClickEvent));$script:trayTestTimer.Stop();$exitMenu.PerformClick();if($null -ne $script:tray -or $null -ne $script:trayIcon -or $script:timer.IsEnabled){throw 'Exiting from the tray did not release resources.'}}
+            }
+            $script:trayTestStep++
+        }catch{$script:trayTestError=$_.Exception.Message;$script:trayTestTimer.Stop();$window.Close()}
+    })
+    $application.Add_Startup({$script:trayTestTimer.Start()})
+}
+$script:timer.Start()
+try{[void]$application.Run($window)}finally{Close-PanelResources}
+if($ValidateTray){if($script:trayTestError){throw $script:trayTestError};if($script:trayTestStep -ne 3){throw 'Application exited while the panel was hidden.'};Write-Output 'PASS: minimize to tray, hidden lifetime, restore, continued sampling and clean exit.'}

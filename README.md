@@ -16,6 +16,7 @@
 - 可选诊断项：功耗、平均有效频率、GPU 热点、CPU 热降频及 GPU 温度限制；没有数据的可选项隐藏。
 - 支持置顶、透明度、拖动窗口，以及温度变色阈值。采用紧凑布局，不包含趋势曲线。
 - 标题和任务栏使用独立的温度监控图标。
+- 标题栏 **−** 将面板隐藏到系统托盘，后台继续监控；双击托盘图标或右键选择“显示面板”可恢复。托盘右键“退出面板”或标题栏 **×** 会退出面板。
 
 ## 运行环境
 
@@ -119,6 +120,8 @@ CPU/GPU 的 `name` 保持为 `CPU`/`GPU`，以进入对应设备卡片。其余�
 powershell.exe -NoProfile -STA -ExecutionPolicy Bypass -File .\Panel.ps1 -ValidateOnly
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\PrepareHWiNFO.ps1 -ValidateOnly
 ```
+
+托盘行为可用 `powershell.exe -NoProfile -STA -ExecutionPolicy Bypass -File .\Panel.ps1 -ValidateTray` 验证。该检查会短暂打开测试窗口，验证隐藏期间继续采集、恢复和退出清理，不启动或重启 HWiNFO。
 
 验证覆盖单位区分、合法零转速、缺失数据、传感器匹配、热降频聚合，以及启动选项对其他 INI 设置的保留。
 
