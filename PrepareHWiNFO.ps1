@@ -8,12 +8,13 @@ function Set-IniOption([string]$text,[string]$name,[string]$value) {
     $body+="$name=$value`r`n"
     return $text.Substring(0,$section.Index)+$section.Groups[1].Value+$body+$text.Substring($section.Index+$section.Length)
 }
-$options=[ordered]@{RememberPreferences='1';SensorsOnly='1';MinimalizeSensors='1';MinimalizeSensorsClose='1';ShowWelcomeAndProgress='0';OpenSystemSummary='0'}
+$options=[ordered]@{RememberPreferences='1'}
 if($ValidateOnly){
-    $fixture="[Settings]`r`nTheme=1`r`nRememberPreferences=0`r`n`r`n[Other]`r`nRememberPreferences=0`r`n"
+    $fixture="[Settings]`r`nTheme=1`r`nRememberPreferences=0`r`nSensorsOnly=0`r`nMinimalizeSensors=0`r`nShowWelcomeAndProgress=1`r`n`r`n[Other]`r`nRememberPreferences=0`r`n"
     foreach($name in $options.Keys){$fixture=Set-IniOption $fixture $name $options[$name]}
     if($fixture -notmatch '(?m)^RememberPreferences=1\r?$' -or $fixture -notmatch '\[Other\]\r?\nRememberPreferences=0'){throw 'INI sections were not preserved.'}
     if($fixture -notmatch '(?m)^Theme=1\r?$'){throw 'An unrelated setting was lost.'}
+    if($fixture -notmatch '(?m)^SensorsOnly=0\r?$' -or $fixture -notmatch '(?m)^MinimalizeSensors=0\r?$' -or $fixture -notmatch '(?m)^ShowWelcomeAndProgress=1\r?$'){throw 'User startup choices were overwritten.'}
     $again=$fixture;foreach($name in $options.Keys){$again=Set-IniOption $again $name $options[$name]}
     if($again -ne $fixture){throw 'Repeated startup preparation must not duplicate settings.'}
     Write-Output 'PASS: persistence options, unrelated settings, section boundaries and repeated startup.'
@@ -39,4 +40,4 @@ if($config.startup.restoreOutputProfile){
     & (Join-Path $env:SystemRoot 'System32\reg.exe') import $restorePath | Out-Null
     if($LASTEXITCODE -ne 0){throw '九项传感器输出配置导入失败。'}
 }
-Start-Process -FilePath $config.hwinfoPath -WorkingDirectory (Split-Path -LiteralPath $config.hwinfoPath) -WindowStyle Hidden
+Start-Process -FilePath $config.hwinfoPath -WorkingDirectory (Split-Path -LiteralPath $config.hwinfoPath) -WindowStyle Normal
