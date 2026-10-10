@@ -2,6 +2,7 @@
 $ErrorActionPreference='Stop'
 Add-Type -AssemblyName PresentationFramework,PresentationCore,WindowsBase
 Add-Type -Path (Join-Path $PSScriptRoot 'NativeTelemetry.cs')
+[PanelNative]::SetAppIdentity()
 $config=Get-Content -LiteralPath (Join-Path $PSScriptRoot 'panel.json') -Raw -Encoding UTF8 | ConvertFrom-Json
 if(-not [IO.Path]::IsPathRooted($config.hwinfoPath)){$config.hwinfoPath=Join-Path $PSScriptRoot $config.hwinfoPath}
 if(-not $ValidateOnly -and -not $PreviewPath){
@@ -66,7 +67,7 @@ function Get-HwSourceHint([bool]$running,[int]$readingCount,[int]$activeCount) {
   <StackPanel>
    <Grid x:Name="Header" Background="Transparent" Margin="0,0,0,10">
     <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
-    <StackPanel><TextBlock Text="硬件监控" Foreground="#F1F5F9" FontSize="17" FontWeight="SemiBold"/><TextBlock Text="温度 · 风扇 · 负载" Foreground="#94A3B8" FontSize="9" Margin="0,3,0,0"/></StackPanel>
+    <StackPanel Orientation="Horizontal"><Image x:Name="AppLogo" Width="32" Height="32" Margin="0,0,10,0" VerticalAlignment="Center"/><StackPanel><TextBlock Text="硬件监控" Foreground="#F1F5F9" FontSize="17" FontWeight="SemiBold"/><TextBlock Text="温度 · 风扇 · 负载" Foreground="#94A3B8" FontSize="9" Margin="0,3,0,0"/></StackPanel></StackPanel>
     <Button x:Name="CloseButton" Grid.Column="1" Content="×" Width="24" Height="24" VerticalAlignment="Top" Background="#1E293B" Foreground="#CBD5E1" BorderThickness="0" ToolTip="关闭面板"/>
    </Grid>
    <ScrollViewer x:Name="Body" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
@@ -89,6 +90,14 @@ function Get-HwSourceHint([bool]$running,[int]$readingCount,[int]$activeCount) {
 </Window>
 '@
 $window=[Windows.Markup.XamlReader]::Load([Xml.XmlNodeReader]::new($xaml))
+$iconPath=Join-Path $PSScriptRoot 'assets\panel.ico'
+if(Test-Path -LiteralPath $iconPath){
+    $iconDecoder=[Windows.Media.Imaging.IconBitmapDecoder]::new([Uri]::new($iconPath),[Windows.Media.Imaging.BitmapCreateOptions]::PreservePixelFormat,[Windows.Media.Imaging.BitmapCacheOption]::OnLoad)
+    $appIcon=$iconDecoder.Frames | Sort-Object PixelWidth -Descending | Select-Object -First 1
+    $headerIcon=$iconDecoder.Frames | Where-Object {$_.PixelWidth -eq 32} | Select-Object -First 1
+    if($null -eq $headerIcon){$headerIcon=$appIcon}
+    $appIcon.Freeze();$headerIcon.Freeze();$window.Icon=$appIcon;$window.FindName('AppLogo').Source=$headerIcon
+}
 $window.Width=[Math]::Max(300,[Math]::Min(600,$config.width)); $window.Topmost=[bool]$config.topmost
 $window.Opacity=[Math]::Max(0.4,[Math]::Min(1,$config.opacity))
 $window.Left=[Math]::Max(0,[Windows.SystemParameters]::WorkArea.Right-$window.Width-24)

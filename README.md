@@ -15,6 +15,7 @@
 - 本次运行的温度峰值，可在详情中重置。
 - 可选诊断项：功耗、平均有效频率、GPU 热点、CPU 热降频及 GPU 温度限制；没有数据的可选项隐藏。
 - 支持置顶、透明度、拖动窗口，以及温度变色阈值。采用紧凑布局，不包含趋势曲线。
+- 标题和任务栏使用独立的温度监控图标。
 
 ## 运行环境
 
@@ -103,6 +104,8 @@ CPU/GPU 的 `name` 保持为 `CPU`/`GPU`，以进入对应设备卡片。其余�
 | `StartPanel.vbs` | Windows 无控制台的双击启动入口 |
 | `Panel.ps1` | 紧凑面板界面、数据绑定与验证入口 |
 | `NativeTelemetry.cs` | Windows 与 NVIDIA 的只读遥测 |
+| `assets/panel.ico`、`assets/panel.svg` | 多尺寸 Windows 图标与可编辑的矢量源图 |
+| `tools/BuildIcon.ps1` | 从矢量源图生成 Windows 图标 |
 | `PrepareHWiNFO.ps1` | HWiNFO 启动准备，默认不导入备份 |
 | `panel.json` | 可编辑的硬件示例与显示设置 |
 

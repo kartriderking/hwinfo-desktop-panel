@@ -14,6 +14,11 @@ public sealed class PanelGpuInfo {
     public double? MemoryUsedGB, MemoryTotalGB, PowerWatts;
 }
 public static class PanelNative {
+    [DllImport("shell32.dll", CharSet=CharSet.Unicode)]
+    private static extern int SetCurrentProcessExplicitAppUserModelID(string appId);
+    public static void SetAppIdentity() {
+        SetCurrentProcessExplicitAppUserModelID("HWiNFO.DesktopPanel");
+    }
     [DllImport("advapi32.dll", CharSet=CharSet.Unicode)]
     private static extern int RegQueryInfoKey(SafeRegistryHandle key, IntPtr cls,
         IntPtr clsLen, IntPtr reserved, IntPtr subKeys, IntPtr maxSubKey,
