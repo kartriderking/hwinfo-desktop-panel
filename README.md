@@ -41,7 +41,8 @@ HWiNFO 主界面运行不代表传感器采集已经启动。Gadget 温度与 RP
 
 - 默认 `startup.startSensors=true`：在下一次由面板启动 HWiNFO 时，写入 `OpenSensors=1`、`MinimalizeSensors=1` 和 `MinimalizeSensorsClose=1`。不强制启用仅传感器模式，主界面仍然可用。
 - 如正在运行的 HWiNFO 尚未采集，请在主窗口点“传感器”；或从托盘正常退出后，再双击 `StartPanel.cmd`，应用新的启动设置。
-- 最小化可以收起传感器窗口；启用“最小化而非关闭”后，× 会保留后台采集。需要完全退出时，使用托盘的 Exit；此时温度和 RPM 会断连。
+- 要只收起传感器并保留主窗口，点传感器右上角的 **−（最小化）**。任务栏可能保留传感器图标，采集会继续。
+- 启用“最小化而非关闭”后，**×** 会保留后台采集，但缩到托盘可能连带收起主窗口。需要完全退出时，使用托盘的 Exit；此时温度和 RPM 会断连。
 - 若希望完全自行管理传感器启动和关闭行为，可设置 `startup.startSensors=false`。启动器将保留上述三个传感器窗口选项。
 - 面板会区分 HWiNFO 未运行、没有新鲜的传感器输出，以及输出已收到但温度项目没有匹配。没有输出时，应检查采集是否启动及 Gadget 是否启用，不会显示旧温度冒充实时数据。
 
@@ -123,3 +124,5 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\PrepareHWiNFO.ps1 -Val
 - [HWiNFO 有效频率说明](https://www.hwinfo.com/forum/threads/effective-clock-vs-instant-discrete-clock.5958/)
 - [NVIDIA NVML](https://docs.nvidia.com/deploy/nvml-api/index.html)
 - [MSI Afterburner 监控与显示指南](https://www.msi.com/blog/msi-afterburner-on-screen-display/)
+
+- [HWiNFO 作者对主窗口与传感器窗口最小化行为的说明](https://www.hwinfo.com/forum/threads/hiding-the-main-gui-without-hiding-sensors.11016/)
